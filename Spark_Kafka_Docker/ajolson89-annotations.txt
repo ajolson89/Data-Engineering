@@ -1,0 +1,34 @@
+1. Git clone the activity-06 repository down into my w205 directory
+2. Started docker container using:
+	docker run -it --rm -v c:\Users\AOlson\w205:/w205 midsw205/base:latest bash
+I'm using a windows machine so this allowed me to use the curl command to get the file
+3. Move the docker-compose.yml file from kafka folder to the activity-06 folder (did this in GUI)
+4. Ran "docker-compose up -d" to ensure the docker compose would start up appropriately
+5. Tested docker-compose using "docker-compose ps" which returned the following output:
+
+             Name                          Command            State                    Ports
+-------------------------------------------------------------------------------------------------------------
+activity06ajolson89_kafka_1       /etc/confluent/docker/run   Up      29092/tcp, 9092/tcp
+activity06ajolson89_mids_1        /bin/bash                   Up      8888/tcp
+activity06ajolson89_zookeeper_1   /etc/confluent/docker/run   Up      2181/tcp, 2888/tcp, 32181/tcp, 3888/tcp
+
+  - Analyzing the yml file, we can see that these ports align with the ports specified in the docker-compose file
+6. Ran the command: docker-compose exec kafka kafka-topics --create --topic foo --partitions 1 --replication-factor 1 --if-not-exists --zookeeper zookeeper:32181
+	- Saw that topic 'foo' was created
+7. Checked the topic using: docker-compose exec kafka kafka-topics --describe --topic foo --zookeeper zookeeper:32181
+  - Recieved the following valid response: 
+  Topic:foo       PartitionCount:1        ReplicationFactor:1     Configs:
+        Topic: foo      Partition: 0    Leader: 1       Replicas: 1     Isr: 1
+        
+8. Ran the following docker-compose exec command per homework instructions to use file assessment-attempts-20180128-121051-nested.json and kafkacat to push real messages to kafka
+	docker-compose exec mids bash -c "cat /w205/assessment-attempts-20180128-121051-nested.json | jq '.[]' -c | kafkacat -P -b kafka:29092 -t foo && echo 'Produced 100 messages.'"
+  - Received message that the command couldn't find the json file - need to use appropriate windows notation
+9. I realized through several attempts that the json file I pulled down was expired. Ran docker-compose down to get out and entered back into
+the midsw205/base image to run a new curl command
+	curl -L -o assessment-attempts-20180128-121051-nested.json https://goo.gl/f5bRm4
+This pulled the correct file. Went back through the various commands listed here (starting from step 4) and didn't get an error message
+
+10. Checked that messages were in fact listed under the topic foo by running the following command which printed the first 5 messages. 
+	docker-compose exec kafka kafka-console-consumer --bootstrap-server kafka:29092 --topic foo --from-beginning --max-messages 5
+11. Ran 'docker-compose down' to stop running the containers and exit safely.
+
